@@ -153,7 +153,7 @@ As mentioned above, snail’s implementation prioritized simplicity over efficie
 
 (Although snail still worked well when rendering 2000+ balls in the first gif example, with a small amount of lag.)
 
-[![Snail 2000 Balls](https://j.gifs.com/VPNZv5.gif)](https://github.com/epai/snail/blob/master/game.py)
+[![Snail 2000 Balls](https://j.gifs.com/G59KYr.gif)](https://github.com/epai/snail/blob/master/game.py)
 
 
 ## References
