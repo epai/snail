@@ -125,7 +125,7 @@ ball.reactors = [
 
 [![Ball Demo (with bounce!)](https://j.gifs.com/MQ9WMO.gif)](https://github.com/epai/snail/blob/master/bounce.py)
 
-## How is it Implemented?
+## How is Snail Implemented?
 Snail uses a simple sampling update strategy like yampa[^2].  While this strategy has drawbacks (computationally intensive to sample on regular intervals and latency is bound by sampling rate[^4]), it is simple to implement, which helps eliminate bugs such as glitches[^5].  
 
 ### Engine
