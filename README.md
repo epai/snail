@@ -1,4 +1,4 @@
-# 🐌 Snail - A Reactive Programming Library for Python
+# 🐌 Snail - Reactive Programming for Python
 
 ## What is Snail?
 Snail provides a simple reactive programming interface  that allows Python programmers to concisely specify the _behavior_ of a reactive application over time.  It takes inspiration from the ideas of Functional Reactive Programming, and augments them to interface with Python objects in a declarative way.
