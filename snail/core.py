@@ -19,12 +19,21 @@ def hold(obj):
         return Constant(now(obj))
     raise NotImplementedError
 
-def reactor(func):
-    def decorated(self, cond, *args):
-        if cond:
-            func(self, *args)
-    return decorated
+# Decorator form:
 
+# def reactor(func):
+#     def decorated(self, cond, *args):
+#         if cond:
+#             func(self, *args)
+#     return decorated
+
+# function form:
+
+def reactor(cond, func):
+    def decorated(cond, *args):
+        if cond:
+            func(*args)
+    return cond >> decorated
 
 class Behavior:
     def __init__(self):
@@ -224,6 +233,49 @@ class Reactive(AutoStorage):
         else:
             self.set_behavior(instance, Constant(value))
 
+
+class Entity:
+    def __init__(self):
+        self.reactors = []
+
+    def perform_update(self, state):
+        for reactor in self.reactors:
+            reactor.perform_update(state)
+
+    def make_dirty(self):
+        for reactor in self.reactors:
+            reactor.make_dirty()
+
+class Engine:
+    def __init__(self, state, entities, behaviors, tick_rate=tick_rate):
+        self.state = state
+        self.entities = entities
+        self.behaviors = behaviors
+        self.tick_rate = tick_rate
+
+    def run(self):
+        global tick_rate
+        tick_rate = self.tick_rate
+
+        while True:
+            timing.sleep(self.tick_rate)
+
+            for behavior in self.behaviors:
+                now(behavior)
+
+            for behavior in self.behaviors:
+                behavior.perform_update(self.state)
+
+            for entity in self.entities:
+                for reactor in entity.reactors:
+                    now(reactor)
+                entity.perform_update(self.state)
+
+            for entity in self.entities:
+                entity.make_dirty()
+
+            for behavior in self.behaviors:
+                behavior.make_dirty()
 
 # class Attribute(AutoStorage):
 #     def __set__(self, instance, behavior):

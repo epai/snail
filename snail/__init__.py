@@ -5,3 +5,6 @@ start = timing.time()
 time = Time()
 
 keyboard = Keyboard()
+
+def integral(behavior):
+    return behavior >> Integral()

@@ -3,36 +3,8 @@ import os
 
 from snail import *
 
-class Config:
-    width = 30
-    height = 24
 
-class State:
-    player = None
-    balls = []
-
-    @property
-    def entities(self):
-        objects = []
-        objects.append(self.player)
-        objects.extend(self.balls)
-        return objects
-
-state = State()
-config = Config()
-
-class Entity:
-    def __init__(self):
-        self.reactors = []
-
-    def perform_update(self, state):
-        for reactor in self.reactors:
-            reactor.perform_update(state)
-
-    def make_dirty(self):
-        for reactor in self.reactors:
-            reactor.make_dirty()
-
+# Reactive entities
 
 class Player(Entity):
     x = Reactive()
@@ -44,19 +16,15 @@ class Player(Entity):
         self.x = x
         self.y = y
 
-    @reactor
     def down(self):
         self.y = min(now(self.y) + 1, config.height)
 
-    @reactor
     def up(self):
         self.y = max(now(self.y) - 1, 0)
 
-    @reactor
     def right(self):
         self.x = min(now(self.x) + 1, config.width)
 
-    @reactor
     def left(self):
         self.x = max(now(self.x) - 1, 0)
 
@@ -71,20 +39,14 @@ class Ball(Entity):
         super().__init__()
         self.char = char
 
-    @reactor
     def reverse_x(self):
         self.vx = -1 * now(self.vx)
 
-    @reactor
     def reverse_y(self):
         self.vy = -1 * now(self.vy)
 
 
-sz = os.get_terminal_size()
-term_height = sz.lines
-term_width = sz.columns
-
-char = '.`'
+# Some pure behavior helpers
 
 def constrain_x(x):
     return max(min(round(x), config.width), 0)
@@ -103,36 +65,65 @@ def print_grid(state):
         print(''.join(row))
     print('\n' * (term_height - config.height - 3))
 
+def quit(done):
+    if done:
+        raise KeyboardInterrupt
+
 
 # Setup code
 
+sz = os.get_terminal_size()
+term_height = sz.lines
+term_width = sz.columns
+char = '.`'
+
+class Config:
+    width = 30
+    height = 24
+
+class State:
+    player = None
+    balls = []
+
+    @property
+    def entities(self):
+        objects = []
+        objects.append(self.player)
+        objects.extend(self.balls)
+        return objects
+
+state = State()
+config = Config()
+
 behaviors = [
-    time,
-    lift(state) >> lift(print_grid),
     keyboard,
+    lift(state) >> lift(print_grid),
+    (keyboard == 'esc') >> quit
 ]
 
-player = Player(x=0, y=0, char='🧀🐌')
+
+
+player = Player(x=config.width // 2, y=config.height // 2, char='🧀🐌')
 player.reactors = [
-    (keyboard == 'down') >> player.down,
-    (keyboard == 'up') >> player.up,
-    (keyboard == 'left') >> player.left,
-    (keyboard == 'right') >> player.right,
+    reactor(keyboard == 'down', player.down),
+    reactor(keyboard == 'up', player.up),
+    reactor(keyboard == 'left', player.left),
+    reactor(keyboard == 'right', player.right)
 ]
 state.player = player
 
 for _ in range(10):
     ball = Ball()
     ball.vx = random.randint(5, 15)
-    ball.x = (ball.vx >> Integral()) + random.randint(0, config.width)
+    ball.x = integral(ball.vx) + random.randint(0, config.width)
     ball.vy = random.randint(5, 15)
-    ball.y = (ball.vy >> Integral()) + random.randint(0, config.height)
+    ball.y = integral(ball.vy) + random.randint(0, config.height)
 
     ball.reactors = [
-        (ball.x >= config.width) >> ball.reverse_x,
-        (ball.x < 0) >> ball.reverse_x,
-        (ball.y >= config.height) >> ball.reverse_y,
-        (ball.y < 0) >> ball.reverse_y
+        reactor(ball.x >= config.width, ball.reverse_x),
+        reactor(ball.x < 0, ball.reverse_x),
+        reactor(ball.y >= config.height, ball.reverse_y),
+        reactor(ball.y < 0, ball.reverse_y),
     ]
 
     state.balls.append(ball)
@@ -140,23 +131,9 @@ for _ in range(10):
 
 # Main reactive loop
 
-while True:
-    timing.sleep(tick_rate)
-
-    for behavior in behaviors:
-        now(behavior)
-
-    for behavior in behaviors:
-        behavior.perform_update(state)
-
-    for entity in state.entities:
-        for reactor in entity.reactors:
-            now(reactor)
-        entity.perform_update(state)
-
-    for entity in state.entities:
-        entity.make_dirty()
-
-    for behavior in behaviors:
-        behavior.make_dirty()
+engine = Engine(state, state.entities, behaviors, tick_rate=0.03)  # roughly 30fps
+try:
+    engine.run()
+except KeyboardInterrupt:
+    print('done')
 
