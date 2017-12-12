@@ -125,7 +125,7 @@ ball.reactors = [
 
 [![Ball Demo (with bounce!)](https://j.gifs.com/MQ9WMO.gif)](https://github.com/epai/snail/blob/master/bounce.py)
 
-## Implementation
+## How is it Implemented?
 Snail uses a simple sampling update strategy like yampa[^2].  While this strategy has drawbacks (computationally intensive to sample on regular intervals and latency is bound by sampling rate[^4]), it is simple to implement, which helps eliminate bugs such as glitches[^5].  
 
 ### Engine
@@ -146,7 +146,7 @@ Snail was designed to be extensible.  New Behavior and BFs can be implemented by
 
 New `Behavior` classes need only subclass the `curr` and `update` methods, and optionally the `make_dirty` method if it encapsulates another Behavior.  New `BehaviorFunction` classes must specify some `transition` function.  State can be stored as in any other python object through the `__init__` or elsewhere.
 
-## Future Work
+## What's Next for Snail?
 Snail is still a work-in-progress, and there are many limitations.  For one, snail currently can only interface with the terminal; porting other frameworks like gui or game frameworks would make snail more practical.  The current example, while, cool, is also minimal.  The hope is to develop some example games, to demonstrate the power of this reactive programming approach.
 
 As mentioned above, snail’s implementation prioritized simplicity over efficiency.  This is okay for simple terminal animations, but will probably not perform well for games with lots of objects and interactions.
