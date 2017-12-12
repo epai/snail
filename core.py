@@ -12,9 +12,9 @@ class Behavior:
         pass
 
     def perform_update(self):
-        if self.dirty:
-            self.update()
-        self.dirty = False
+        # if self.dirty:
+        self.update()
+        # self.dirty = False
 
     def make_dirty(self):
         self.dirty = True
@@ -88,6 +88,10 @@ class Mapping(Behavior):
     def update(self):
         self.behavior.perform_update()
 
+    def make_dirty(self):
+        super().make_dirty()
+        self.behavior.make_dirty()
+
 class Time(Behavior):
     def __init__(self):
         super().__init__()
@@ -109,7 +113,11 @@ class Alias(Behavior):
         return self.behavior.curr()
 
     def update(self):
-        self.behavior.update()
+        self.behavior.perform_update()
+
+    def make_dirty(self):
+        super().make_dirty()
+        self.behavior.make_dirty()
 
 class Constant(Behavior):
     def __init__(self, constant):
@@ -234,5 +242,5 @@ class Reactive(AutoStorage):
             self.set_behavior(instance, Constant(value))
 
 start = timing.time()
-tick_rate = 0.05
+tick_rate = 0.01
 time = Time()
