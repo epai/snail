@@ -3,21 +3,23 @@ import sys
 import fcntl
 import os
 
-from core import Behavior
+from snail.core import Behavior
+from snail.utils import nostdout
 
-import contextlib
-import io
-import sys
+class Keyboard(Behavior):
+    def __init__(self):
+        super().__init__()
+        self.key = None
 
-@contextlib.contextmanager
-def nostdout():
-    save_stdout = sys.stdout
-    sys.stdout = io.BytesIO()
-    yield
-    sys.stdout = save_stdout
+    def curr(self):
+        return self.key
+
+    def update(self, state):
+        key = get_key_stroke()
+        self.key = key
+
 
 def get_key_code(blocking = True):
-    # print('         \r', end='', flush=True)
     with nostdout():
         fd = sys.stdin.fileno()
         oldterm = termios.tcgetattr(fd)
@@ -68,19 +70,10 @@ def get_key_stroke():
     elif code > 0:
         return chr(code)
 
-class Keyboard(Behavior):
-    def __init__(self):
-        super().__init__()
-        self.key = None
+if __name__ == '__main__':
+    import time
+    while True:
+        time.sleep(0.1)
+        key = getKeyStroke()
 
-    def curr(self):
-        return self.key
 
-    def update(self):
-        key = get_key_stroke()
-        self.key = key
-
-# import time
-# while True:
-#     time.sleep(0.1)
-#     key = getKeyStroke()

@@ -1,6 +1,31 @@
 import time as timing
 import operator
 
+tick_rate = 0.01
+
+def now(stream):
+    return stream.__class__.curr(stream)
+
+def lift(obj):
+    if callable(obj):
+        return Function(obj)
+    elif isinstance(obj, Behavior) or isinstance(obj, BehaviorFunction):
+        return obj
+    else:
+        return Constant(obj)
+
+def hold(obj):
+    if isinstance(obj, Behavior):
+        return Constant(now(obj))
+    raise NotImplementedError
+
+def reactor(func):
+    def decorated(self, cond, *args):
+        if cond:
+            func(self, *args)
+    return decorated
+
+
 class Behavior:
     def __init__(self):
         self.dirty = True
@@ -8,13 +33,13 @@ class Behavior:
     def curr(self):
         pass
 
-    def update(self):
+    def update(self, state):
         pass
 
-    def perform_update(self):
-        # if self.dirty:
-        self.update()
-        # self.dirty = False
+    def perform_update(self, state):
+        if self.dirty:
+            self.update(state)
+        self.dirty = False
 
     def make_dirty(self):
         self.dirty = True
@@ -70,11 +95,10 @@ add_binop(Behavior, operator.eq)
 add_binop(Behavior, operator.ne)
 add_binop(Behavior, operator.lt)
 add_binop(Behavior, operator.gt)
-
 add_unop(Behavior, operator.abs)
-
 add_boolop(Behavior, operator.and_)
 add_boolop(Behavior, operator.or_)
+
 
 class Mapping(Behavior):
     def __init__(self, behavior, transition):
@@ -85,8 +109,8 @@ class Mapping(Behavior):
     def curr(self):
         return self.transition(self.behavior.curr())
 
-    def update(self):
-        self.behavior.perform_update()
+    def update(self, state):
+        self.behavior.perform_update(state)
 
     def make_dirty(self):
         super().make_dirty()
@@ -101,7 +125,7 @@ class Time(Behavior):
     def curr(self):
         return int(self._curr - self._start)
 
-    def update(self):
+    def update(self, state):
         self._curr = timing.time()
 
 class Alias(Behavior):
@@ -112,8 +136,8 @@ class Alias(Behavior):
     def curr(self):
         return self.behavior.curr()
 
-    def update(self):
-        self.behavior.perform_update()
+    def update(self, state):
+        self.behavior.perform_update(state)
 
     def make_dirty(self):
         super().make_dirty()
@@ -127,13 +151,6 @@ class Constant(Behavior):
     def curr(self):
         return self.constant
 
-    # no updating logic
-
-
-def hold(obj):
-    if isinstance(obj, Behavior):
-        return Constant(now(obj))
-    raise NotImplementedError
 
 
 class BehaviorFunction:
@@ -153,14 +170,6 @@ class Function(BehaviorFunction):
     def __init__(self, func):
         self.build(func)
 
-def lift(obj):
-    if callable(obj):
-        return Function(obj)
-    elif isinstance(obj, Behavior) or isinstance(obj, BehaviorFunction):
-        return obj
-    else:
-        return Constant(obj)
-
 class Compose(BehaviorFunction):
     def __init__(self, first, second):
         self.build(lambda val: second.transition(first.transition(val)))
@@ -173,8 +182,7 @@ class Integral(BehaviorFunction):
         self.sum += val * tick_rate
         return self.sum
 
-def now(stream):
-    return stream.__class__.curr(stream)
+
 
 class AutoStorage:
     __counter = 0
@@ -195,32 +203,7 @@ class AutoStorage:
     def __set__(self, instance, value):
         setattr(instance, self.storage_name, value)
 
-
-# class Attribute(AutoStorage):
-#     def __set__(self, instance, behavior):
-#         if super().__get__(instance, None) is None:
-#             alias = Alias(behavior)
-#             super().__set__(instance, alias)
-#         else:
-#             alias = super().__get__(instance, None)
-#             alias.behavior = behavior
-
-# class Static
-
-
-# class EntityMeta(type):
-#     def __init__(cls, name, bases, attr_dict):
-#         super().__init__(name, bases, attr_dict)
-#         for key, attr in attr_dict.items():
-#             if isinstance(attr, Attribute):
-#                 type_name = type(attr).__name__
-#                 attr.storage_name = '_{}#{}'.format(type_name, key)
-
-# class Entity(metaclass=EntityMeta):
-#     """ Business entity """
-
 class Reactive(AutoStorage):
-
     def set_behavior(self, instance, behavior):
         if getattr(instance, self.storage_name, None):
             # we have a behavior!
@@ -241,6 +224,26 @@ class Reactive(AutoStorage):
         else:
             self.set_behavior(instance, Constant(value))
 
-start = timing.time()
-tick_rate = 0.01
-time = Time()
+
+# class Attribute(AutoStorage):
+#     def __set__(self, instance, behavior):
+#         if super().__get__(instance, None) is None:
+#             alias = Alias(behavior)
+#             super().__set__(instance, alias)
+#         else:
+#             alias = super().__get__(instance, None)
+#             alias.behavior = behavior
+
+
+
+# class EntityMeta(type):
+#     def __init__(cls, name, bases, attr_dict):
+#         super().__init__(name, bases, attr_dict)
+#         for key, attr in attr_dict.items():
+#             if isinstance(attr, Attribute):
+#                 type_name = type(attr).__name__
+#                 attr.storage_name = '_{}#{}'.format(type_name, key)
+
+# class Entity(metaclass=EntityMeta):
+#     """ Business entity """
+
