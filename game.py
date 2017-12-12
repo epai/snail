@@ -78,19 +78,12 @@ term_width = sz.columns
 char = '.`'
 
 class Config:
-    width = 30
-    height = 24
+    width = 40
+    height = 30
 
 class State:
     player = None
     balls = []
-
-    @property
-    def entities(self):
-        objects = []
-        objects.append(self.player)
-        objects.extend(self.balls)
-        return objects
 
 state = State()
 config = Config()
@@ -112,7 +105,7 @@ player.reactors = [
 ]
 state.player = player
 
-for _ in range(10):
+for _ in range(2000):
     ball = Ball()
     ball.vx = random.randint(5, 15)
     ball.x = integral(ball.vx) + random.randint(0, config.width)
@@ -131,7 +124,7 @@ for _ in range(10):
 
 # Main reactive loop
 
-engine = Engine(state, state.entities, behaviors, tick_rate=0.03)  # roughly 30fps
+engine = Engine(behaviors, state=state, tick_rate=0.03)  # roughly 30fps
 try:
     engine.run()
 except KeyboardInterrupt:

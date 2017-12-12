@@ -233,10 +233,12 @@ class Reactive(AutoStorage):
         else:
             self.set_behavior(instance, Constant(value))
 
+entities = []
 
 class Entity:
     def __init__(self):
         self.reactors = []
+        entities.append(self)
 
     def perform_update(self, state):
         for reactor in self.reactors:
@@ -247,7 +249,7 @@ class Entity:
             reactor.make_dirty()
 
 class Engine:
-    def __init__(self, state, entities, behaviors, tick_rate=tick_rate):
+    def __init__(self, behaviors, entities=entities, state=None, tick_rate=tick_rate):
         self.state = state
         self.entities = entities
         self.behaviors = behaviors
