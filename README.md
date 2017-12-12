@@ -7,10 +7,10 @@ Snail provides a simple reactive programming interface  that allows Python progr
 (Source code in [`game.py`](https://github.com/epai/snail/blob/master/game.py); tested in Python 3.6 on the latest macOS)
 
 ## Why Snail?
-Open source reactive programming support for Python is sorely lacking.  The only available solution is RxPY, but it uses an observer-based model that has been shown to be less readable than FRP models[^1].  Implementations for FRP-like Python libraries do exist (such as PFRP [^2]), but they remain closed source, and lack useful abstractions in other FRP libraries like Yampa[^3].  Snail is my attempt to bring FRP-like ideas to Python in an open source way, inspired by both PFRP and Yampa.
+Open source reactive programming support for Python is sorely lacking.  The only available solution is RxPY, but it uses an observer-based model that has been shown to be less readable than FRP models[^1].  Implementations for FRP-like Python libraries do exist (such as PFRP [^2]), but they remain closed source, and lack useful abstractions in other FRP libraries like Yampa’s Signal Functions[^3].  Snail is my attempt to bring FRP-like ideas to Python in an open source way, inspired by ideas from both PFRP and Yampa.
 
 ## Why Reactive Programming?
-Reactive applications, such as graphical animations and user-interactive software, are often hard to develop using traditional imperative methods because they involve a mix of data and control flow that can be difficult to reason about.  A reactive programming style simplifies the development of reactive applications by shifting focus to behaviors that change either over time or in response to other behaviors.  Programmers can thus focus on how objects should behave and how data should flow at a high-level, while the reactive library/engine handles all the control flow wiring logic under covers.  
+Reactive applications, such as graphical animations and user-interactive software, are often hard to develop using traditional imperative methods, because they involve a mix of data and control flow that can be difficult to reason about.  A reactive programming style simplifies the development of these applications by shifting focus to behaviors that change either over time or in response to other behaviors.  This allows programmers to focus on how objects should behave and how data should flow at a high-level, while the reactive library/engine handles all the control flow wiring logic under covers.  
 
 ## How Do You Use Snail?
 The basic objects in snail are Behaviors, which are streams of values that update over time, and Behavior Functions (BFs), which are functions over Behaviors.  Behaviors and BFs are similar to Yampa Signals and Signal Functions[^3], but are implemented as objects instead of functions.
@@ -60,7 +60,7 @@ behavior = time >> bf
 The BF will only be made into a Behavior when it is composed with a Behavior.  This works similarly to Yampa’s Arrow Functions[^3], and is a feature that doesn’t exist in PFRP.
 
 ### Reactive Entities and Reactors
-The features so far are similar to Yampa-style FRP.  Taking inspiration from PFRP[^2], snail also provides Reactive Entities, which are similar to PFRP reactive proxy objects.  Reactive Entities are objects with attributes that are behaviors.
+The features so far are similar to Yampa-style FRP.  Taking inspiration from PFRP[^2], snail also provides Reactive `Entities`, which are similar to PFRP reactive proxy objects.  Reactive Entities are objects with attributes that are behaviors.
 
 As an example, we can define a simple Ball reactive entity, as shown below:
 
@@ -98,7 +98,7 @@ Few things to note:
 2. Constant values (like numbers) are automatically lifted if they’re assigned to a reactive attribute.
 3. Since Behaviors can be thought of as continuous functions, we can compute ball’s `x` position by taking the integral of the velocity.
 
-We have a problem, though:  the ball doesn’t bounce back!  We can fix this by adding **reactors**:
+We have a problem, though:  the ball does not bounce back!  We can fix this by adding **reactors**:
 
 ```
 # … import same as above
@@ -126,23 +126,23 @@ ball.reactors = [
 [![Ball Demo (with bounce!)](https://j.gifs.com/MQ9WMO.gif)](https://github.com/epai/snail/blob/master/bounce.py)
 
 ## Implementation
-Snail uses a simple sampling update strategy like yampa[^2].  While this strategy has drawbacks (computationally intensive to sample on regular intervals and latency is bound by sampling rate[^4]), it’s simple to implement, which helps eliminate bugs such as glitches[^5].  
+Snail uses a simple sampling update strategy like yampa[^2].  While this strategy has drawbacks (computationally intensive to sample on regular intervals and latency is bound by sampling rate[^4]), it is simple to implement, which helps eliminate bugs such as glitches[^5].  
 
 ### Engine
 On every sampling tick, the engine performs updates in a few steps:
 
 1. Accesses current values for all behaviors and entities.  This is to ensure any `print` calls run.
 2. Each behavior and entity gets updated.
-	- Each behavior keeps track of a `dirty` flag that indicates whether it has been updated.  If `dirty` is False, this means the update already happened and shouldn’t be repeated.
-	- Updating an Entity involves updating each of the Reactive attributes in that entity, as well as reactors associated with that entity.
+	- Each behavior keeps track of a `dirty` flag that indicates whether it has been updated.  If `dirty` is False, this means the update already happened and should not be repeated.
+	- Updating an `Entity` involves updating each of the Reactive attributes in that entity, as well as any reactors associated with that entity.
 	- Since reactors may change Reactive attributes (which other Reactives may depend on), the system uses special `Alias` behaviors, which allows the behaviors to be swapped under an indirection layer.  This prevents attributes from depending on stale behaviors that got overriden.
 3. Each behavior and entity gets dirtied (i.e. the `dirty` flag gets set to `False`, so updates can be performed fresh on the next tick).
 
 ### Behavior Initiation
-Like yampa[^3], snail sidesteps the time-space-leakage problem mentioned in the PFRP paper[^2] by using Behavior Functions and having a specific instantiation process:  Behavior Functions don’t “start” until they’ve been mapped to a specific Behavior.  
+Like yampa[^3], snail sidesteps the time-space-leakage problem mentioned in the PFRP paper[^2] by using BFs and having a specific instantiation process:  BFs do not “start” until they’ve been mapped to a specific Behavior.  
 
 ### Extensibility
-Snail was designed to be extensible.  New Behavior and Behavior Functions can be implemented by subclassing the `Behavior` and `BehaviorFunction` classes respectively.  A caveat is that any new `Behavior` or `BehaviorFunction` classes must be non-blocking (important when defining new forms of IO, like mouse input).  
+Snail was designed to be extensible.  New Behavior and BFs can be implemented by subclassing the `Behavior` and `BehaviorFunction` classes respectively.  A caveat is that any new `Behavior` or `BehaviorFunction` classes must be non-blocking (important when defining new forms of IO, like mouse input).  
 
 New `Behavior` classes need only subclass the `curr` and `update` methods, and optionally the `make_dirty` method if it encapsulates another Behavior.  New `BehaviorFunction` classes must specify some `transition` function.  State can be stored as in any other python object through the `__init__` or elsewhere.
 
